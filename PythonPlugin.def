@@ -1,0 +1,6 @@
+; PythonPlugin.def : Declares the module parameters for the DLL.
+
+; LIBRARY      "PythonPlugin"
+
+EXPORTS
+    ; Explicit exports can go here
