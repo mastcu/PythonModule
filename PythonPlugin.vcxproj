@@ -42,7 +42,7 @@
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseOfMfc>Dynamic</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v90</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
@@ -205,7 +205,7 @@
       <MkTypLibCompatible>false</MkTypLibCompatible>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\SerialEM;C:\Program Files (x86)\Python$(PYTH_MAJOR)$(PYTH_MINOR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\SerialEM;C:\Program Files (x86)\Python$(PYTH_MAJOR)$(PYTH_MINOR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;_AFXEXT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
@@ -219,7 +219,7 @@
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>C:\Program Files (x86)\Python$(PYTH_MAJOR)$(PYTH_MINOR)\libs\Python$(PYTH_MAJOR)$(PYTH_MINOR).lib;..\..\SerialEM\SerialEM.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>C:\Program Files (x86)\Python$(PYTH_MAJOR)$(PYTH_MINOR)\libs\Python$(PYTH_MAJOR)$(PYTH_MINOR).lib;..\SerialEM\SerialEM.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)Python$(PYTH_MAJOR).$(PYTH_MINOR)Plugin.dll</OutputFile>
       <ModuleDefinitionFile>.\PythonPlugin.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -239,7 +239,7 @@
       <MkTypLibCompatible>false</MkTypLibCompatible>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\SerialEM;C:\Program Files (x86)\Python$(PYTH_MAJOR)$(PYTH_MINOR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\SerialEM;C:\Program Files (x86)\Python$(PYTH_MAJOR)$(PYTH_MINOR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;_AFXEXT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
@@ -253,7 +253,7 @@
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>C:\Program Files (x86)\Python$(PYTH_MAJOR)$(PYTH_MINOR)\libs\Python$(PYTH_MAJOR)$(PYTH_MINOR).lib;..\..\SerialEM\SerialEM.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>C:\Program Files (x86)\Python$(PYTH_MAJOR)$(PYTH_MINOR)\libs\Python$(PYTH_MAJOR)$(PYTH_MINOR).lib;..\SerialEM\SerialEM.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)Python$(PYTH_MAJOR).$(PYTH_MINOR)Plugin.dll</OutputFile>
       <ModuleDefinitionFile>.\PythonPlugin.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -273,7 +273,7 @@
       <MkTypLibCompatible>false</MkTypLibCompatible>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\SerialEM;C:\Program Files\Python$(PYTH_MAJOR)$(PYTH_MINOR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\SerialEM;C:\Program Files\Python$(PYTH_MAJOR)$(PYTH_MINOR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;_AFXEXT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
@@ -287,7 +287,7 @@
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>..\..\SerialEM\x64\SerialEM.lib;C:\Program Files\Python$(PYTH_MAJOR)$(PYTH_MINOR)\libs\python$(PYTH_MAJOR)$(PYTH_MINOR).lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\SerialEM\x64\SerialEM.lib;C:\Program Files\Python$(PYTH_MAJOR)$(PYTH_MINOR)\libs\python$(PYTH_MAJOR)$(PYTH_MINOR).lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)Python$(PYTH_MAJOR).$(PYTH_MINOR)Plugin.dll</OutputFile>
       <ModuleDefinitionFile>.\PythonPlugin.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -306,7 +306,7 @@
       <MkTypLibCompatible>false</MkTypLibCompatible>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\SerialEM;C:\Program Files\Python$(PYTH_MAJOR)$(PYTH_MINOR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\SerialEM;C:\Program Files\Python$(PYTH_MAJOR)$(PYTH_MINOR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;_AFXEXT;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
@@ -320,7 +320,7 @@
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>..\..\SerialEM\x64\SerialEM.lib;C:\Program Files\Python$(PYTH_MAJOR)$(PYTH_MINOR)\libs\python$(PYTH_MAJOR)$(PYTH_MINOR).lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\SerialEM\x64\SerialEM.lib;C:\Program Files\Python$(PYTH_MAJOR)$(PYTH_MINOR)\libs\python$(PYTH_MAJOR)$(PYTH_MINOR).lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)Python$(PYTH_MAJOR).$(PYTH_MINOR)Plugin.dll</OutputFile>
       <ModuleDefinitionFile>.\PythonPlugin.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
