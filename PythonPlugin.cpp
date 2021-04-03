@@ -84,6 +84,10 @@ DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 #define ASSTR(X) STR(X)
 const char *sPlugName = "Python" ASSTR(PY_MAJOR_VERSION) "." ASSTR(PY_MINOR_VERSION);
 
+#if PY_MAJOR_VERSION > 3 || (PY_MAJOR_VERSION == 3 && PY_MINOR_VERSION >= 4)
+#define BUFFER_TYPE
+#endif
+
 // Your functions must use this calling convention
 #define DLLEXPORT extern "C" __declspec (dllexport)
 
@@ -175,6 +179,208 @@ void DebugFmt(char *fmt, ...)
  * Macros defining the different types of standardized calls
  */
 
+/*
+ * Buffer Protocol-related code is largely copied from the example in
+ *  https://jakevdp.github.io/blog/2014/05/05/introduction-to-the-python-buffer-protocol/
+ * which is released with a BSD-type license
+ */
+#ifdef BUFFER_TYPE
+ /* This is where we define the PyBufferImage object structure */
+typedef struct {
+  PyObject_HEAD
+    
+  /* Type-specific fields go below. */
+  void *array;
+  int imType;
+  int rowBytes;
+  int sizeX, sizeY;
+  int itemSize;
+  Py_ssize_t shape[2];
+  Py_ssize_t strides[2];
+  char format[8];
+} PyBufferImage;
+
+
+/* This is the __init__ function, implemented in C */
+static int PyBufferImage_init(PyBufferImage *bufIm, PyObject *args, PyObject *kwds)
+{
+  char *strPtr;
+  int bufInd, len;
+  bufIm->array = NULL;
+
+  if (kwds) {
+    PyErr_SetString(PyExc_TypeError, "Keywords are not supported when initializing"
+      " a bufferImage");
+    return -1;   // -1 works here, no second error
+  }
+
+  // Get the buffer argument
+  if (!PyArg_ParseTuple(args, "s", &strPtr))
+    return -1;
+  len = (int)strlen(strPtr);
+  if (len == 1 || (len == 2 && strPtr[1] == 'F')) {
+    bufInd = strPtr[0] - 'A';
+    if (bufInd >= 0 && ((len == 1 && bufInd < MAX_BUFFERS) ||
+      (len == 2 && bufInd < MAX_FFT_BUFFERS))) {
+      bufIm->array = SEMGetBufferImage(bufInd, len - 1, bufIm->imType,
+        bufIm->rowBytes, bufIm->sizeX, bufIm->sizeY);
+      if (!bufIm->array) {
+        PyErr_Format(sSerialEMError, "There is no image in buffer %s", strPtr);
+
+        // -1 here and below is silent, 0 gives an exception from the exception with
+        // "returned a result with an error set"
+        return 0;  
+      }
+      switch (bufIm->imType) {
+      case MRC_MODE_BYTE:
+        bufIm->itemSize = 1;
+        strcpy(bufIm->format, "B");
+        break;
+      case MRC_MODE_FLOAT:
+        bufIm->itemSize = 4;
+        strcpy(bufIm->format, "f");
+        break;
+      case MRC_MODE_SHORT:
+        bufIm->itemSize = 2;
+        strcpy(bufIm->format, "h");
+        break;
+      case MRC_MODE_USHORT:
+        bufIm->itemSize = 2;
+        strcpy(bufIm->format, "H");
+        break;
+      case MRC_MODE_RGB:
+        bufIm->itemSize = 3;
+        strcpy(bufIm->format, "BBB");
+        break;
+      default:
+        PyErr_Format(sSerialEMError, "The image in buffer %s has mode %d which is"
+          " unsupported", bufInd, bufIm->imType);
+        return 0;
+      }
+      DebugFmt("Initialized image %d %d %d %d", bufIm->imType, bufIm->rowBytes, bufIm->sizeX, bufIm->sizeY);
+      return 0;
+    }
+  }
+  PyErr_Format(sSerialEMError, "\"%s\" is not a valid buffer specification", strPtr);
+  return 0;
+}
+
+
+/* this function is called when the object is deallocated */
+static void PyBufferImage_dealloc(PyBufferImage* bufIm)
+{
+  Py_TYPE(bufIm)->tp_free((PyObject*)bufIm);
+}
+
+// The function to fill the buffer object values.  UNTESTED
+static int PyBufferImage_getbuffer(PyObject *obj, Py_buffer *view, int flags)
+{
+  if (view == NULL) {
+    PyErr_SetString(PyExc_ValueError, "NULL view in getbuffer");
+    return -1;
+  }
+  if (flags & PyBUF_WRITABLE) {
+    PyErr_SetString(sSerialEMError, "Calling function requested a writable buffer image");
+    return -1;
+  }
+
+  PyBufferImage* bufIm = (PyBufferImage*)obj;
+
+  // Refuse a request for strictly contiguous code (no strides) if the stride is actually
+  // needed
+  if (!(flags & PyBUF_ANY_CONTIGUOUS) &&
+    bufIm->rowBytes != bufIm->itemSize * bufIm->sizeX) {
+    PyErr_SetString(sSerialEMError, "Calling function requested a contiguous buffer image"
+      " without strides and the image has padded lines");
+    return -1;
+  }
+
+  // The first dimension is the slow one
+  bufIm->shape[0] = bufIm->sizeY;
+  bufIm->shape[1] = bufIm->sizeX;
+  bufIm->strides[0] = bufIm->rowBytes;
+  bufIm->strides[1] = bufIm->itemSize;
+
+  view->obj = obj;
+  view->buf = (void*)bufIm->array;
+  view->len = bufIm->rowBytes * bufIm->sizeY;
+  view->readonly = 1;
+  view->itemsize = sizeof(int);
+  view->format = bufIm->format;
+  view->ndim = 2;
+  view->shape = &bufIm->shape[0];
+  view->strides = (flags & PyBUF_ANY_CONTIGUOUS) ? &bufIm->strides[0] : NULL;
+  view->suboffsets = NULL;
+  view->internal = NULL;
+
+  Py_INCREF(bufIm);  // need to increase the reference count
+  return 0;
+}
+
+static PyBufferProcs PyBufferImage_as_buffer = {
+  // this definition is only compatible with Python 3.3 and above
+  (getbufferproc)PyBufferImage_getbuffer,
+  (releasebufferproc)0,  // we do not require any special release function
+};
+
+/* Here is the type structure: we put the above functions in the appropriate place
+in order to actually define the Python object type */
+static PyTypeObject PyBufferImageType = {
+  PyVarObject_HEAD_INIT(NULL, 0)
+  "serialem.PyBufferImage",        /* tp_name */
+  sizeof(PyBufferImage),            /* tp_basicsize */
+  0,                            /* tp_itemsize */
+  (destructor)PyBufferImage_dealloc,/* tp_dealloc */
+  0,                            /* tp_print */
+  0,                            /* tp_getattr */
+  0,                            /* tp_setattr */
+  0,                            /* tp_reserved */
+  0,                            /* tp_repr */
+  0,                            /* tp_as_number */
+  0,                            /* tp_as_sequence */
+  0,                            /* tp_as_mapping */
+  0,                            /* tp_hash  */
+  0,                            /* tp_call */
+  0,                            /* tp_str */
+  0,                            /* tp_getattro */
+  0,                            /* tp_setattro */
+  &PyBufferImage_as_buffer,     /* tp_as_buffer */
+  Py_TPFLAGS_DEFAULT,           /* tp_flags */
+  "PyBufferImage object",           /* tp_doc */
+  0,                            /* tp_traverse */
+  0,                            /* tp_clear */
+  0,                            /* tp_richcompare */
+  0,                            /* tp_weaklistoffset */
+  0,                            /* tp_iter */
+  0,                            /* tp_iternext */
+  0,                            /* tp_methods */
+  0,                            /* tp_members */
+  0,                            /* tp_getset */
+  0,                            /* tp_base */
+  0,                            /* tp_dict */
+  0,                            /* tp_descr_get */
+  0,                            /* tp_descr_set */
+  0,                            /* tp_dictoffset */
+  (initproc)PyBufferImage_init,     /* tp_init */
+};
+
+// End of buffer protocol code based on the blog */
+
+PyObject *serialem_IsImageValid(PyObject *self, PyObject *args)
+{
+  int bufInd, ifFFT;
+  PyBufferImage *bufIm;
+  if (!PyArg_ParseTuple(args, "O", &bufIm))
+    return NULL;
+  if (SEMIsBufferImageValid(bufIm->array, bufIm->imType, bufIm->rowBytes, bufIm->sizeX,
+    bufIm->sizeY, bufInd, ifFFT)) {
+    return Py_BuildValue("ii", bufInd, ifFFT);
+  } else {
+    Py_RETURN_NONE;
+  }
+}
+#endif
+
 // This is both the pattern for making a specialized set as done below,
 // and also necessary to define away the rest of entries in the master list
 #define MAC_SAME_FUNC(nam, req, flg, fnc, cme)  
@@ -225,6 +431,9 @@ PyObject *serialem_##nam(PyObject *self, PyObject *args) \
 // Include to make the method table
 static PyMethodDef serialemmethods[] = {
 #include "MacroMasterList.h"
+#ifdef BUFFER_TYPE
+  {"isImageValid", serialem_IsImageValid, METH_VARARGS},
+#endif
   {NULL, NULL}};
 
 // Define the module
@@ -243,6 +452,13 @@ PyMODINIT_FUNC initserialem(void)
 {
   PyObject *mod;
 
+#ifdef BUFFER_TYPE
+  PyBufferImageType.tp_new = PyType_GenericNew;
+  if (PyType_Ready(&PyBufferImageType) < 0)
+    return NULL;
+  Py_INCREF(&PyBufferImageType);
+#endif
+
 #if PY_MAJOR_VERSION >= 3
   mod = PyModule_Create(&serialemModule);
   if (mod == NULL)
@@ -259,12 +475,19 @@ PyMODINIT_FUNC initserialem(void)
   sExitedError = PyErr_NewException("serialem.SEMexited", NULL, NULL);
   Py_XINCREF(sExitedError);
   if (PyModule_AddObject(mod, "SEMerror", sSerialEMError) < 0 ||
-    PyModule_AddObject(mod, "SEMexited", sExitedError)) {
+    PyModule_AddObject(mod, "SEMexited", sExitedError) < 0
+#ifdef BUFFER_TYPE
+    || PyModule_AddObject(mod, "bufferImage", (PyObject *)&PyBufferImageType) < 0
+#endif
+    ) {
 
     Py_XDECREF(sSerialEMError);
     Py_CLEAR(sSerialEMError);
     Py_XDECREF(sExitedError);
     Py_CLEAR(sExitedError);
+#ifdef BUFFER_TYPE
+    Py_DECREF(&PyBufferImageType);
+#endif
     Py_DECREF(mod);
 #if PY_MAJOR_VERSION >= 3
     return NULL;
@@ -374,6 +597,16 @@ DLLEXPORT int RunScript(const char *script)
   
   sExitWasCalled = false;
   sScriptData->gotExceptionText = false;
+  /* This is the alternate way of running the script that avoids having to 
+  finalize-initialize just to clear out errors.  It ruins the writing of syntax errors
+  to the error file, and would require additional code to try to access the syntax 
+  errors, which did not work when it was tried
+  PyObject *pdict = PyDict_New();
+  PyDict_SetItemString(pdict, "__builtins__", PyEval_GetBuiltins());
+  PyObject *obj = PyRun_String(script, Py_file_input, pdict, pdict);
+  retval = obj ? 0 : -1; */
+
+  // The simple way to run the script
   retval= PyRun_SimpleString(script);
   DebugFmt("RunScript returning %d", retval);
 
@@ -414,6 +647,8 @@ DLLEXPORT int RunScript(const char *script)
     Py_Initialize();
 
   } else {
+
+    // And this is needed to clean out the set variables etc after a run with SimpleScript
     double start = GetTickCount();
     Py_Finalize();
     Py_Initialize();
