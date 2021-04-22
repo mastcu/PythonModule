@@ -680,8 +680,8 @@ static PyObject *RunCommand(int funcCode, const char *name, const char *keys,
       sprintf_s(sErrorBuf, ERR_BUF_SIZE, "%f", sScriptData->itemDbl[ond]);
       sScriptData->strItems[ond] = sErrorBuf;
       if (sScriptData->strItems[ond].find('.') >= 0) {
-        while (sScriptData->strItems[ond].back() == '0')
-          sScriptData->strItems[ond].pop_back();
+        while (sScriptData->strItems[ond][sScriptData->strItems[ond].size() - 1] == '0')
+          sScriptData->strItems[ond].resize(sScriptData->strItems[ond].size() - 1);
       }
     } else {
       sScriptData->itemDbl[ond] = tempInts[ind];
