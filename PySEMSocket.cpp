@@ -699,7 +699,7 @@ int CPySEMSocket::RegularCommand(void)
   SendAndReceiveArgs();
   free(longArr);
   if (mLongArgs[0]) {
-    if ((mLongArgs[0] != -9 && mLongArgs[0] != -8) || mErrorBuf[0] = 0x00)
+    if ((mLongArgs[0] != -9 && mLongArgs[0] != -8) || mErrorBuf[0] == 0x00)
       sprintf_s(mErrorBuf, ERR_BUF_SIZE, "Error %d returned in socket exchange with "
                 "SerialEM for regular command",  mLongArgs[0]);
     if (mLongArgs[0] < 0)
