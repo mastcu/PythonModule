@@ -348,6 +348,8 @@ void CPySEMSocket::InitializePacking(int funcCode)
 // the return code to a negative value in various error cases
 void CPySEMSocket::SendAndReceiveArgs()
 {
+  mErrorBuf[0] = 0x00;
+
  // This value was set to actual arguments for clarity; add one now for the return value
  mNumLongRecv++;
  int funcCode = mLongArgs[0];
@@ -528,15 +530,19 @@ int CPySEMSocket::ReceiveImage(char *imArray, int numBytes, int numChunks)
 int CPySEMSocket::SendImage(void *imArray, int imSize)
 {
   int numChunks, chunkSize, numToSend, numLeft, totalSent = 0;
-
+  std::string bufCopy;
+ 
   // determine number of superchunks and send that back as long
   numChunks = (imSize + mSuperChunkSize - 1) / mSuperChunkSize;
   LONG_ARG(numChunks);
   SendAndReceiveArgs();
   if (mLongArgs[0]) {
-    if (mLongArgs[0] != -9 && mLongArgs[0] != -8)
+    bufCopy = mErrorBuf;
+    if (mLongArgs[0] != -9)
       sprintf_s(mErrorBuf, ERR_BUF_SIZE, "Error %d returned in socket exchange with "
-                "SerialEM to put image in buffer",  mLongArgs[0]);
+                "SerialEM to put image in buffer%s%s",  mLongArgs[0],
+                 bufCopy.size() ? ": " : "", bufCopy.size() ? bufCopy.c_str() : "");
+
     if (mLongArgs[0] < 0)
       CloseServer();
     return 1;
@@ -680,6 +686,7 @@ int CPySEMSocket::RegularCommand(void)
   char *strArray;
   char *empty = "";
   long *longArr = NULL;
+  std::string bufCopy;
   InitializePacking(PSS_RegularCommand);
   LONG_ARG(mScriptData->functionCode);
   LONG_ARG(mScriptData->lastNonEmptyInd);
@@ -695,13 +702,14 @@ int CPySEMSocket::RegularCommand(void)
   }
   mNumLongRecv = 3;
   mRecvLongArray = true;
-  mErrorBuf[0] = 0x00;
   SendAndReceiveArgs();
   free(longArr);
   if (mLongArgs[0]) {
-    if ((mLongArgs[0] != -9 && mLongArgs[0] != -8) || mErrorBuf[0] == 0x00)
+    bufCopy = mErrorBuf;
+    if (mLongArgs[0] != -9)
       sprintf_s(mErrorBuf, ERR_BUF_SIZE, "Error %d returned in socket exchange with "
-                "SerialEM for regular command",  mLongArgs[0]);
+                "SerialEM for regular command%s%s",  mLongArgs[0],
+                bufCopy.size() ? ": " : "", bufCopy.size() ? bufCopy.c_str() : "");
     if (mLongArgs[0] < 0)
       CloseServer();
     return 1;
@@ -729,13 +737,16 @@ int CPySEMSocket::RegularCommand(void)
 // OKtoRunExternalScript
 int CPySEMSocket::OKtoRunExternalScript(BOOL &OKtoRun)
 {
+  std::string bufCopy;
   InitializePacking(PSS_OKtoRunExternalScript);
   mNumBoolRecv = 1;
   SendAndReceiveArgs();
   if (mLongArgs[0]) {
-    if (mLongArgs[0] != -9 && mLongArgs[0] != -8)
+    bufCopy = mErrorBuf;
+    if (mLongArgs[0] != -9)
       sprintf_s(mErrorBuf, ERR_BUF_SIZE, "Error %d returned in socket exchange with "
-                "SerialEM to check on running external script",  mLongArgs[0]);
+                "SerialEM to check on running external script%s%s",  mLongArgs[0],
+                bufCopy.size() ? ": " : "", bufCopy.size() ? bufCopy.c_str() : "");
     if (mLongArgs[0] < 0)
       CloseServer();
     return 1;
@@ -751,15 +762,18 @@ void *CPySEMSocket::GetBufferImage(int bufInd, int ifFFT, const char *bufStr, in
 {
   char *imArray;
   int numBytes, numChunks;
-  InitializePacking(PSS_GetBufferImage);
+  std::string bufCopy;
+   InitializePacking(PSS_GetBufferImage);
   LONG_ARG(bufInd);
   LONG_ARG(ifFFT);
   mNumLongRecv = 6;
   SendAndReceiveArgs();
   if (mLongArgs[0]) {
-    if (mLongArgs[0] != -9 && mLongArgs[0] != -8)
+     bufCopy = mErrorBuf;
+    if (mLongArgs[0] != -9)
       sprintf_s(mErrorBuf, ERR_BUF_SIZE, "Error %d returned in socket exchange with "
-                "SerialEM to get buffer %s",  mLongArgs[0], bufStr);
+                "SerialEM to get buffer %s%s%s",  mLongArgs[0], bufStr,
+                bufCopy.size() ? ": " : "", bufCopy.size() ? bufCopy.c_str() : "");
     if (mLongArgs[0] < 0)
       CloseServer();
     return NULL;
