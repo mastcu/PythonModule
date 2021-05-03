@@ -4,13 +4,17 @@
 #
 
 from distutils.core import setup, Extension
+import sys
+libs = []
+if sys.platform.startswith("win"):
+   libs = ['wsock32']
 serialemmodule = Extension('serialem',
                            define_macros = [('MAJOR_VERSION', '1'),
                                             ('MINOR_VERSION', '0')],
                            include_dirs = ['../SerialEM', '../SerialEM/Shared'],
                            sources = ['SerialEMModule.cpp',
                                       'PySEMSocket.cpp'],
-                           libraries = ['wsock32'],
+                           libraries = libs ,
                            depends = ['PySEMSocket.h'])
 
 setup (name = 'serialem',

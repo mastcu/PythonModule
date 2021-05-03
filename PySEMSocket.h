@@ -1,6 +1,28 @@
 #pragma once
-#include <winsock.h>
 #include <string>
+
+#ifdef _WIN32
+
+// Windows-specific
+#include <winsock.h>
+#define LONG long
+#else
+
+// Linux and Mac variants
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#define INVALID_SOCKET -1
+#define SOCKET_ERROR -1
+#define SOCKET int
+#define SOCKADDR_IN struct sockaddr_in
+#define PSOCKADDR struct sockaddr *
+#define BOOL int
+#define LONG int
+#define sprintf_s snprintf
+#define vsprintf_s vsnprintf
+#define strcpy_s(dst, siz, src) strncpy(dst, src, (siz)); dst[(siz) - 1] = 0x00
+#define strncpy_s(dst, siz, src, d) strncpy(dst, src, (siz)); (dst)[(siz) - 1] = 0x00
+#endif
 
 #define ERR_BUF_SIZE 320
 #define MAX_SCRIPT_LANG_ARGS 20
@@ -64,8 +86,8 @@ private:
   int mNumBoolRecv;
   int mNumDblRecv;
   bool mRecvLongArray;
-  long *mLongArray;
-  long mLongArgs[MAX_LONG_ARGS];   // Max is 16
+  LONG *mLongArray;
+  LONG mLongArgs[MAX_LONG_ARGS];   // Max is 16
   double mDoubleArgs[MAX_DBL_ARGS];  // Max is 8
   BOOL mBoolArgs[MAX_BOOL_ARGS];   // Max is 8
   char *mArgsBuffer;
@@ -83,10 +105,10 @@ public:
   void SendAndReceiveArgs();
   int SendOneArgReturnRetVal(int funcCode, int argument);
   const char *GetOneString(int funcCode);
-  void AddStringAsLongArray(const char *name, long *longArr, int maxLen);
-  long *AddLongsAndStrings(long *longVals, int numLongs, 
+  void AddStringAsLongArray(const char *name, LONG *longArr, int maxLen);
+  LONG *AddLongsAndStrings(LONG *longVals, int numLongs, 
                                   const char **strings, int numStrings);
-  long *AddItemArrays();
+  LONG *AddItemArrays();
   int ReceiveImage(char *imArray, int numBytes, int numChunks);
   int SendImage(void *imArray, int imSize);
   int SendBuffer(char *buffer, int numBytes);

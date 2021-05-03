@@ -11,9 +11,6 @@
 #define BUFFER_TYPE
 #endif
 
-// Your functions must use this calling convention
-#define DLLEXPORT extern "C" __declspec (dllexport)
-
 #define MAX_BUFFERS  20
 #define MAX_FFT_BUFFERS 8
 #define EXTRA_NO_VALUE -1.e8f
@@ -52,11 +49,10 @@ enum {
 */
 static PyObject *RunCommand(int funcCode, const char *name, const char *keys,
   PyObject *args);
-static int fgetline(FILE *fp, char s[], int limit);
-
 
 void DebugToLog(const char *message)
 {
+  printf("%s", message);
 }
 
 void ErrorToLog(const char *message) 
@@ -74,8 +70,8 @@ void EitherToLog(const char *prefix, const char *message, bool saveErr)
 }
 
 /*
-* An even more convenient function for debug output
-*/
+ * An even more convenient function for debug output
+ */
 void DebugFmt(char *fmt, ...)
 {
   va_list args;
@@ -84,7 +80,6 @@ void DebugFmt(char *fmt, ...)
   va_end(args);
   DebugToLog(sErrorBuf);
 }
-
 
 /*
  * Now for Python handling
@@ -145,8 +140,6 @@ static int PyBufferImage_init(PyBufferImage *bufIm, PyObject *args, PyObject *kw
         return 0;  
       }
 
-      DebugFmt("Received image %d %d %d %d", bufIm->imType, bufIm->rowBytes,
-               bufIm->sizeX, bufIm->sizeY);
       return 0;
     }
   }
@@ -445,7 +438,7 @@ static PyModuleDef serialemModule = {
 #endif
 
 #if PY_MAJOR_VERSION >= 3
-PyObject *PyInit_serialem(void)
+PyMODINIT_FUNC PyInit_serialem(void)
 #else
 PyMODINIT_FUNC initserialem(void)
 #endif
@@ -572,7 +565,6 @@ static PyObject *RunCommand(int funcCode, const char *name, const char *keys,
     } else {
       format = "Incorrect character in argument keys for function ";
       format += name;
-      ErrorToLog(format.c_str());
       PyErr_SetString(sSEMModuleError, format.c_str());
       return NULL;
     }
@@ -660,6 +652,8 @@ static PyObject *RunCommand(int funcCode, const char *name, const char *keys,
       aP[5], aP[6], aP[7], aP[8], aP[9], aP[10], aP[11], aP[12], aP[13], aP[14], aP[15], 
       aP[16], aP[17], aP[18]);
     break;
+  default:
+    retval = 1;
   }
 
   if (!retval)
@@ -703,7 +697,6 @@ static PyObject *RunCommand(int funcCode, const char *name, const char *keys,
   // signaled to do that, or throw a catchable error exception unless already exiting
   // from an exception
   if (sScriptData->errorOccurred) {
-    DebugFmt("PythonPlugin got an error %d", sScriptData->errorOccurred);
     if (sScriptData->errorOccurred == SCRIPT_NORMAL_EXIT) {
       PyErr_SetString(sExitedError, "Normal exit");
       sInitializedScript = false;
@@ -747,29 +740,3 @@ static PyObject *RunCommand(int funcCode, const char *name, const char *keys,
   }
   return tup;
 }
-
-  
-// A minimal version of my getline function
-static int fgetline(FILE *fp, char s[], int limit)
-{
-  int c, i, length;
-
-  for (i = 0; (((c = getc(fp)) != EOF) && (i < (limit - 1)) && (c != '\n')); i++)
-    s[i] = c;
-
-  /* 1/25/12: Take off a return too! */
-  if (i > 0 && s[i - 1] == '\r')
-    i--;
-
-  /* A \n or EOF on the first character leaves i at 0, so there is nothing
-  special to be handled about i being 1, 9/18/09 */
-
-  s[i] = '\0';
-  length = i;
-
-  if (c == EOF)
-    return (-1 * (length + 2));
-  else
-    return (length);
-}
-

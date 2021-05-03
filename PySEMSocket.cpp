@@ -4,7 +4,6 @@
 // image sending code from BaseServer.cpp in FeiScope, similarly modified to send
 // properties and to skip the handshakes.  Handshakes did NOT work in that direction
 
-#include <winsock.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <time.h>
@@ -13,6 +12,38 @@
 #include "b3dutil.h"
 
 #define EXTERNAL_PY_PORT 48888
+
+#ifdef _WIN32
+
+// Windows definitions
+#define DUPENV(a, b, c) _dupenv_s(&a, b, c);
+#define FREE_ENV(a)  free(a)
+#else
+
+// Unix includes and definitions
+#include <sys/time.h>
+#include <errno.h>
+#include <unistd.h>
+
+#define _strdup strdup
+#define DUPENV(a, b, c) a = getenv(c)
+#define FREE_ENV(a)
+#define closesocket close
+#define WSAECONNABORTED ECONNREFUSED
+#define WSAECONNRESET ECONNREFUSED
+
+int WSAGetLastError()
+{
+  return errno;
+}
+
+unsigned int GetTickCount()
+{
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  return (unsigned int)(1000 * tv.tv_sec + tv.tv_usec / 1000);
+}
+#endif
 
 // Copy of tick interval functions
 double SEMTickInterval(double now, double then)
@@ -29,6 +60,7 @@ double SEMTickInterval(double then)
   return SEMTickInterval((double)GetTickCount(), then);
 }
 
+//  Constructor
 CPySEMSocket::CPySEMSocket(void)
 {
   mWSAinitialized = false;
@@ -48,18 +80,18 @@ CPySEMSocket::~CPySEMSocket(void)
 
 // Initialize for one socket: check the IP address, allocate the buffer, and
 
-// Insist on at least Winsock v1.1
-const unsigned int VERSION_MAJOR = 1;
-const unsigned int VERSION_MINOR = 1;
-
 int CPySEMSocket::InitializeSocket(int port, const char *ipAddress)
 {
-  WSADATA WSData;
   char *envar;
   static bool firstTime = true;
   if (mIPaddress && mServer != INVALID_SOCKET)
     return 0;
 
+#ifdef _WIN32
+  // Insist on at least Winsock v1.1
+  const unsigned int VERSION_MAJOR = 1;
+  const unsigned int VERSION_MINOR = 1;
+  WSADATA WSData;
   if (!mWSAinitialized) {
     
     // Attempt to initialize WinSock (1.1 or later). 
@@ -67,8 +99,9 @@ int CPySEMSocket::InitializeSocket(int port, const char *ipAddress)
       sprintf_s(mErrorBuf, ERR_BUF_SIZE, "Failed to initialize Winsock");
       return 1;
     }
-    mWSAinitialized = true;
   }
+#endif
+  mWSAinitialized = true;
 
   // Only do the port and IP address on the first call, as later calls happen
   // automatically to restart scripting and we don't want the default
@@ -77,10 +110,10 @@ int CPySEMSocket::InitializeSocket(int port, const char *ipAddress)
     // get the port if none supplied, use default for external control or environment var
     if (!port) {
       port = EXTERNAL_PY_PORT;
-      _dupenv_s(&envar, NULL, "PY_SERIALEM_PORT");
+      DUPENV(envar, NULL, "PY_SERIALEM_PORT");
       if (envar) {
         port = atoi(envar);
-        free(envar);
+        FREE_ENV(envar);
       }
     }
     if (port <= 0)  {
@@ -92,10 +125,10 @@ int CPySEMSocket::InitializeSocket(int port, const char *ipAddress)
     // Get the IP address if none supplied, local or environment variable
     free(mIPaddress);       
     if (!ipAddress) {
-      _dupenv_s(&envar, NULL, "PY_SERIALEM_IP");
+      DUPENV(envar, NULL, "PY_SERIALEM_IP");
       if (envar) {
         mIPaddress = _strdup(envar);
-        free(envar);
+        FREE_ENV(envar);
       } else
         mIPaddress = _strdup("127.0.0.1");
     } else {
@@ -143,8 +176,10 @@ int CPySEMSocket::ReallocArgsBufIfNeeded(int needSize)
 // Call once to uninitialize on program end
 void CPySEMSocket::UninitializeWSA(void)
 {
+#ifdef _WIN32
   if (mWSAinitialized)
     WSACleanup();
+#endif
   mWSAinitialized = false;
   free(mIPaddress);
   mIPaddress = NULL;
@@ -161,27 +196,32 @@ void CPySEMSocket::CloseBeforeNextUse()
 // Open the socket and connect it to the server
 int CPySEMSocket::OpenServerSocket()
 {
+#ifdef _WIN32
   mSockAddr.sin_addr.S_un.S_addr = inet_addr(mIPaddress); 
+  memset(mSockAddr.sin_zero, '\0', sizeof(mSockAddr.sin_zero));
+#else
+  memset(&mSockAddr, 0, sizeof(mSockAddr));
+  inet_pton(AF_INET, mIPaddress, &mSockAddr.sin_addr );
+#endif
   mSockAddr.sin_family = AF_INET;
   mSockAddr.sin_port = htons(mPort);     // short, network byte order
-  memset(mSockAddr.sin_zero, '\0', sizeof(mSockAddr.sin_zero));
 
   mServer = socket(PF_INET, SOCK_STREAM, 0);
   if(mServer == INVALID_SOCKET) {
-    sprintf_s(mErrorBuf, ERR_BUF_SIZE, "PySEMSocket: Cannot open server socket at IP %s on port %d (%d)",
-      mIPaddress, mPort, WSAGetLastError());
+    sprintf_s(mErrorBuf, ERR_BUF_SIZE, "PySEMSocket: Cannot open server socket at "
+              "IP %s on port %d (%d)", mIPaddress, mPort, WSAGetLastError());
     return 1;
   }
 
   // Connect the Socket.
   if(connect(mServer, (PSOCKADDR) &mSockAddr, sizeof(SOCKADDR_IN))) {
-    sprintf_s(mErrorBuf, ERR_BUF_SIZE, "PySEMSocket: Error connecting to Server socket at IP %s on port %d (%d)"
-      , mIPaddress, mPort, WSAGetLastError());
+    sprintf_s(mErrorBuf, ERR_BUF_SIZE, "PySEMSocket: Error connecting to Server socket "
+              "at IP %s on port %d (%d)" , mIPaddress, mPort, WSAGetLastError());
     CloseServer();
     return 1;
   }
-  sprintf_s(mErrorBuf, ERR_BUF_SIZE, "PySEMSocket: Connected to Server socket at IP %s on port %d",
-      mIPaddress, mPort);
+  sprintf_s(mErrorBuf, ERR_BUF_SIZE, "PySEMSocket: Connected to Server socket at IP %s "
+            "on port %d", mIPaddress, mPort);
   return 0;
 }
 
@@ -213,7 +253,7 @@ int CPySEMSocket::ExchangeMessages()
   for (trial = 0; trial < 2; trial++) {
 
     // Try to send the message
-    nbytes = send(mServer, mArgsBuffer, mNumBytesSend, 0);
+    nbytes = (int)send(mServer, mArgsBuffer, mNumBytesSend, 0);
     //SEMTrace('1', "PySEMSocket: send returned %d", nbytes);
     if (nbytes <= 0) {
 
@@ -239,7 +279,7 @@ int CPySEMSocket::ExchangeMessages()
 
     // Try to get the reply
     startTime = GetTickCount();
-    numReceived = recv(mServer, mArgsBuffer, mArgBufSize, 0);
+    numReceived = (int)recv(mServer, mArgsBuffer, mArgBufSize, 0);
     if (numReceived <= 0) {
 
       // If that fails with lost connection within a short time on first try, reopen
@@ -297,7 +337,7 @@ int CPySEMSocket::FinishGettingBuffer(char *buffer, int numReceived,
     ind = numReceived;
     if (numExpected > bufSize)
       ind = 0;
-     numNew = recv(mServer, &buffer[ind], bufSize - ind, 0);
+    numNew = (int)recv(mServer, &buffer[ind], bufSize - ind, 0);
     if (numNew <= 0) {
       return 1;
     }
@@ -315,7 +355,7 @@ int CPySEMSocket::FinishSendingBuffer(char *buffer, int numBytes,
     numToSend = numBytes - numTotalSent;
     if (numToSend > mChunkSize)
       numToSend = mChunkSize;
-    numSent = send(mServer, &buffer[numTotalSent], numToSend, 0);
+    numSent = (int)send(mServer, &buffer[numTotalSent], numToSend, 0);
     if (numSent < 0) {
       return 1;
     }
@@ -399,7 +439,7 @@ int CPySEMSocket::SendOneArgReturnRetVal(int funcCode, int argument)
 // Call a function with no arguments to return a string
 const char *CPySEMSocket::GetOneString(int funcCode)
 {
-  static char *empty = "";
+  static const char *empty = "";
   InitializePacking(funcCode);
   mRecvLongArray = true;
   mNumLongRecv = 1;
@@ -411,29 +451,29 @@ const char *CPySEMSocket::GetOneString(int funcCode)
 
 // Adds a string as a long array after copying it into the supplied array; this should be
 // called AFTER all long arguments are added
-void CPySEMSocket::AddStringAsLongArray(const char *name, long *longArr, 
+void CPySEMSocket::AddStringAsLongArray(const char *name, LONG *longArr, 
                                               int maxLen)
 {
   int len = ((int)strlen(name) + 4) / 4;
   if (len > maxLen)
     len = maxLen;
-  strncpy_s((char *)longArr, len * 4, name, _TRUNCATE);
+  strncpy_s((char *)longArr, maxLen * 4, name, _TRUNCATE);
   mLongArray = longArr;
   mLongArgs[mNumLongSend++] = len;
 }
 
 // Adds an optional array of longs then an optional collection of strings by allocating
 // an array and returning it; this should be called AFTER all long arguments are added
-long *CPySEMSocket::AddLongsAndStrings(long *longVals, int numLongs, 
+LONG *CPySEMSocket::AddLongsAndStrings(LONG *longVals, int numLongs, 
                                       const char **strings, int numStrings)
 {
   int ind, len, charsLeft, lenTot = numLongs * sizeof(long);
-  long *longArr;
+  LONG *longArr;
   char *nameStr;
   for (ind = 0; ind < numStrings; ind++) 
     lenTot += (int)strlen(strings[ind]) + 1;
   lenTot = (lenTot + 5) / 4;
-  longArr = (long *)malloc(lenTot * sizeof(long));
+  longArr = (LONG *)malloc(lenTot * sizeof(long));
   if (!longArr)
     return NULL;
 
@@ -454,16 +494,16 @@ long *CPySEMSocket::AddLongsAndStrings(long *longVals, int numLongs,
   return longArr;
 }
 
-long *CPySEMSocket::AddItemArrays() 
+LONG *CPySEMSocket::AddItemArrays() 
 {
   int numLongs = mScriptData->lastNonEmptyInd + 1;
   int ind, len, charsLeft, lenTot = numLongs * (sizeof(long) + sizeof(double));
-  long *longArr;
+  LONG *longArr;
   char *nameStr;
   for (ind = 0; ind < numLongs; ind++) 
     lenTot += (int)mScriptData->strItems[ind].size() + 1;
   lenTot = (lenTot + 5) / 4;
-  longArr = (long *)malloc(lenTot * sizeof(long));
+  longArr = (LONG *)malloc(lenTot * sizeof(long));
   if (!longArr)
     return NULL;
   
@@ -504,7 +544,7 @@ int CPySEMSocket::ReceiveImage(char *imArray, int numBytes, int numChunks)
         mCloseBeforeNextUse = true;
         return 1;
       }
-      nsent = send(mServer, mArgsBuffer, mNumBytesSend, 0);
+      nsent = (int)send(mServer, mArgsBuffer, mNumBytesSend, 0);
       if (nsent <= 0) {
         sprintf_s(mErrorBuf, ERR_BUF_SIZE, "PySEMSocket: send error %d sending "
                   "image handshake", WSAGetLastError());
@@ -529,7 +569,7 @@ int CPySEMSocket::ReceiveImage(char *imArray, int numBytes, int numChunks)
 // error
 int CPySEMSocket::SendImage(void *imArray, int imSize)
 {
-  int numChunks, chunkSize, numToSend, numLeft, totalSent = 0;
+  int numChunks, chunkSize, numToSend, totalSent = 0;
   std::string bufCopy;
  
   // determine number of superchunks and send that back as long
@@ -549,7 +589,6 @@ int CPySEMSocket::SendImage(void *imArray, int imSize)
   }
 
   // Loop on the chunks until done, getting acknowledgement after each
-  numLeft = imSize;
   chunkSize = (imSize + numChunks - 1) / numChunks;
   while (totalSent < imSize) {
     numToSend = chunkSize;
@@ -571,7 +610,7 @@ int CPySEMSocket::SendBuffer(char *buffer, int numBytes)
     numToSend = numBytes - numTotalSent;
     if (numToSend > mChunkSize)
       numToSend = mChunkSize;
-    numSent = send(mServer, &buffer[numTotalSent], numToSend, 0);
+    numSent = (int)send(mServer, &buffer[numTotalSent], numToSend, 0);
     if (numSent < 0) {
       ReportErrorAndClose(numSent, "send a chunk of bytes");
       return 1;
@@ -627,7 +666,7 @@ int CPySEMSocket::UnpackReceivedData(int limitedNum)
 
   // If receiving a long array, size is in last long arg; copy address 
   if (mRecvLongArray && mNumLongRecv > 0) {
-    mLongArray = (long *)(&mArgsBuffer[numUnpacked]);
+    mLongArray = (LONG *)(&mArgsBuffer[numUnpacked]);
     numUnpacked += sizeof(long) * mLongArgs[mNumLongRecv - 1];
   }
   return 0;
@@ -684,8 +723,7 @@ int CPySEMSocket::RegularCommand(void)
   int ind, numLongs;
   double *dblArray;
   char *strArray;
-  char *empty = "";
-  long *longArr = NULL;
+  LONG *longArr = NULL;
   std::string bufCopy;
   InitializePacking(PSS_RegularCommand);
   LONG_ARG(mScriptData->functionCode);
