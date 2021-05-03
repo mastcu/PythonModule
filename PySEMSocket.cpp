@@ -317,7 +317,7 @@ int CPySEMSocket::ExchangeMessages()
     return 1;
   }
   
-  needed = sizeof(int) + mNumLongRecv * sizeof(long) + mNumBoolRecv * 
+  needed = sizeof(int) + mNumLongRecv * sizeof(LONG) + mNumBoolRecv * 
     sizeof(BOOL) + mNumDblRecv * sizeof(double);
 
   if ((!mRecvLongArray && needed != numExpected) ||
@@ -467,19 +467,19 @@ void CPySEMSocket::AddStringAsLongArray(const char *name, LONG *longArr,
 LONG *CPySEMSocket::AddLongsAndStrings(LONG *longVals, int numLongs, 
                                       const char **strings, int numStrings)
 {
-  int ind, len, charsLeft, lenTot = numLongs * sizeof(long);
+  int ind, len, charsLeft, lenTot = numLongs * sizeof(LONG);
   LONG *longArr;
   char *nameStr;
   for (ind = 0; ind < numStrings; ind++) 
     lenTot += (int)strlen(strings[ind]) + 1;
   lenTot = (lenTot + 5) / 4;
-  longArr = (LONG *)malloc(lenTot * sizeof(long));
+  longArr = (LONG *)malloc(lenTot * sizeof(LONG));
   if (!longArr)
     return NULL;
 
   // Pack the names after the binnings and terminate with an empty string (not needed...)
   nameStr = (char *)(&longArr[numLongs]);
-  charsLeft = (lenTot - numLongs) * sizeof(long) - 1;
+  charsLeft = (lenTot - numLongs) * sizeof(LONG) - 1;
   for (ind = 0; ind < numLongs; ind++)
     longArr[ind] = longVals[ind];
   for (ind = 0; ind < numStrings; ind++) {
@@ -497,18 +497,18 @@ LONG *CPySEMSocket::AddLongsAndStrings(LONG *longVals, int numLongs,
 LONG *CPySEMSocket::AddItemArrays() 
 {
   int numLongs = mScriptData->lastNonEmptyInd + 1;
-  int ind, len, charsLeft, lenTot = numLongs * (sizeof(long) + sizeof(double));
+  int ind, len, charsLeft, lenTot = numLongs * (sizeof(LONG) + sizeof(double));
   LONG *longArr;
   char *nameStr;
   for (ind = 0; ind < numLongs; ind++) 
     lenTot += (int)mScriptData->strItems[ind].size() + 1;
   lenTot = (lenTot + 5) / 4;
-  longArr = (LONG *)malloc(lenTot * sizeof(long));
+  longArr = (LONG *)malloc(lenTot * sizeof(LONG));
   if (!longArr)
     return NULL;
   
   // Pack the data and terminate with an empty string (not needed...)
-  charsLeft = (lenTot - numLongs) * sizeof(long) - 1;
+  charsLeft = (lenTot - numLongs) * sizeof(LONG) - 1;
   for (ind = 0; ind < numLongs; ind++)
     longArr[ind] = mScriptData->itemInt[ind];
   nameStr = (char *)(&longArr[numLongs]);
@@ -648,7 +648,7 @@ int CPySEMSocket::UnpackReceivedData(int limitedNum)
     mLongArgs[0] = 0;
     return 0;
   }
-  numBytes = mNumLongRecv * sizeof(long);
+  numBytes = mNumLongRecv * sizeof(LONG);
   if (limitedNum > 0)
     numBytes = 4;
   memcpy(mLongArgs, &mArgsBuffer[numUnpacked], numBytes);
@@ -667,7 +667,7 @@ int CPySEMSocket::UnpackReceivedData(int limitedNum)
   // If receiving a long array, size is in last long arg; copy address 
   if (mRecvLongArray && mNumLongRecv > 0) {
     mLongArray = (LONG *)(&mArgsBuffer[numUnpacked]);
-    numUnpacked += sizeof(long) * mLongArgs[mNumLongRecv - 1];
+    numUnpacked += sizeof(LONG) * mLongArgs[mNumLongRecv - 1];
   }
   return 0;
 }
@@ -678,7 +678,7 @@ int CPySEMSocket::PackDataToSend()
   int numAdd;
   mNumBytesSend = sizeof(int);
   if (mNumLongSend) {
-    numAdd = mNumLongSend * sizeof(long);
+    numAdd = mNumLongSend * sizeof(LONG);
     if (numAdd + mNumBytesSend > mArgBufSize)
       return 1;
     memcpy(&mArgsBuffer[mNumBytesSend], mLongArgs, numAdd);
@@ -701,7 +701,7 @@ int CPySEMSocket::PackDataToSend()
 
   // If there is a long array to send, the last long arg has the size
   if (mLongArray) {
-    numAdd = mLongArgs[mNumLongSend - 1] * sizeof(long);
+    numAdd = mLongArgs[mNumLongSend - 1] * sizeof(LONG);
     if (ReallocArgsBufIfNeeded(numAdd + mNumBytesSend))
       return 1;
     memcpy(&mArgsBuffer[mNumBytesSend], mLongArray, numAdd);
