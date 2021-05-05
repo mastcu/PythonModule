@@ -24,8 +24,17 @@
 #define strncpy_s(dst, siz, src, d) strncpy(dst, src, (siz)); (dst)[(siz) - 1] = 0x00
 #endif
 
+// Supported MRC file types/data types
+#define MRC_MODE_BYTE          0
+#define MRC_MODE_SHORT         1
+#define MRC_MODE_FLOAT         2
+#define MRC_MODE_USHORT        6
+#define MRC_MODE_RGB           16
+
 #define ERR_BUF_SIZE 320
 #define MAX_SCRIPT_LANG_ARGS 20
+
+#define B3DMIN(a,b) ((a) < (b) ? (a) : (b))
 
 // Macros for adding arguments
 #define LONG_ARG(b) mLongArgs[mNumLongSend++] = b;

@@ -11,11 +11,11 @@ if sys.platform.startswith("win"):
 serialemmodule = Extension('serialem',
                            define_macros = [('MAJOR_VERSION', '1'),
                                             ('MINOR_VERSION', '0')],
-                           include_dirs = ['../SerialEM', '../SerialEM/Shared'],
+                           include_dirs = ['../SerialEM'],
                            sources = ['SerialEMModule.cpp',
                                       'PySEMSocket.cpp'],
-                           libraries = libs ,
-                           depends = ['PySEMSocket.h'])
+                           libraries = libs,
+                           depends = ['PySEMSocket.h', '../SerialeME/MacroMasterList.h'])
 
 setup (name = 'serialem',
        version = '1.0',
@@ -26,6 +26,6 @@ setup (name = 'serialem',
        maintainer_email = 'mast@colorado.edu',
        url = 'http://bio3d.colorado.edu/SerialEM',
        long_description = '''
-Python module for using Python scripting in SerialEM
+Python module for using Python scripting in SerialEM or external control of SerialEM
 ''',
        ext_modules = [serialemmodule])

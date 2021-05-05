@@ -9,7 +9,6 @@
 #include <time.h>
 #include <stdio.h>
 #include "PySEMSocket.h"
-#include "b3dutil.h"
 
 #define EXTERNAL_PY_PORT 48888
 

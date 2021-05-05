@@ -1,5 +1,4 @@
 #include "Python.h"
-#include "mrcfiles.h"
 #include <string>
 #include "PySEMSocket.h"
 
@@ -11,6 +10,7 @@
 #define BUFFER_TYPE
 #endif
 
+// Definitions from SerialEM: these should come from a common include file
 #define MAX_BUFFERS  20
 #define MAX_FFT_BUFFERS 8
 #define EXTRA_NO_VALUE -1.e8f
@@ -18,6 +18,7 @@
 #define SCRIPT_NORMAL_EXIT  -123456
 #define SCRIPT_EXIT_NO_EXC  -654321
 #define BUFFER_PROCESSED -1
+
 
 #define INT_NO_VALUE -2000000000
 static char sErrorBuf[ERR_BUF_SIZE] = {0x00};
@@ -438,7 +439,11 @@ static PyModuleDef serialemModule = {
 #endif
 
 #if PY_MAJOR_VERSION >= 3
+#ifdef _WIN32
+PyObject *PyInit_serialem(void)
+#else
 PyMODINIT_FUNC PyInit_serialem(void)
+#endif
 #else
 PyMODINIT_FUNC initserialem(void)
 #endif
