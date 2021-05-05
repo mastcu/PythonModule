@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <stdio.h>
+#include <string.h>
 #include "PySEMSocket.h"
 
 #define EXTERNAL_PY_PORT 48888
