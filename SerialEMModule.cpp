@@ -38,7 +38,12 @@ static ScriptLangData *sScriptData = &dataStruct;
 #define MAC_SAME_NAME(nam, req, flg, cme) CME_##cme,
 #define MAC_DIFF_NAME(nam, req, flg, fnc, cme) CME_##cme,
 #define MAC_SAME_FUNC(nam, req, flg, fnc, cme) CME_##cme,
-#include "DefineScriptMacros.h"
+#define MAC_SAME_FUNC_NOARG MAC_SAME_FUNC
+#define MAC_DIFF_NAME_NOARG MAC_DIFF_NAME
+#define MAC_SAME_NAME_NOARG MAC_SAME_NAME
+#define MAC_SAME_NAME_ARG(a, b, c, d, e) MAC_SAME_NAME(a, b, c, d)
+#define MAC_DIFF_NAME_ARG(a, b, c, d, e, f) MAC_DIFF_NAME(a, b, c, d, e)
+#define MAC_SAME_FUNC_ARG(a, b, c, d, e, f) MAC_SAME_FUNC(a, b, c, d, e)
 
 // An enum with indexes to true commands, preceded by special operations
 enum {

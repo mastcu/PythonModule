@@ -11,11 +11,10 @@ if sys.platform.startswith("win"):
 serialemmodule = Extension('serialem',
                            define_macros = [('MAJOR_VERSION', '1'),
                                             ('MINOR_VERSION', '0')],
-                           include_dirs = ['../SerialEM'],
                            sources = ['SerialEMModule.cpp',
                                       'PySEMSocket.cpp'],
                            libraries = libs,
-                           depends = ['PySEMSocket.h', '../SerialeME/MacroMasterList.h'])
+                           depends = ['PySEMSocket.h', 'MacroMasterList.h'])
 
 setup (name = 'serialem',
        version = '1.0',
