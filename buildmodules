@@ -27,6 +27,7 @@ if [ $masterDiff -ne 0 ] ; then
     if [ $? -ne 0 ] ; then echo "Error copying changed masterList" ; exit 1 ; fi
     hg commit -m "Changed in SerialEM" MacroMasterList.h
     if [ $? -ne 0 ] ; then echo "Error committing changed masterList" ; exit 1 ; fi
+    hg push
 fi
     
 rm -r build
@@ -65,7 +66,7 @@ chmod u+w PythonModules/msvcp140.dll
 C:/Program\ Files/WinRAR/WinRAR a -r -z./path.txt PythonModules.rar PythonModules
 C:/Program\ Files/WinRAR/WinRAR s -y PythonModules.rar
 chmod a+rx PythonModules.exe
-scp PythonModules.exe collie.int.colorado.edu:SerialEM/Testing-3.9-32
+scp PythonModules.exe bio3d.colorado.edu:SerialEM/Testing-3.9-32
 if [ $? -ne 0 ] ; then echo "Error copying to Testing-3.9-32" ; exit 1 ; fi
-scp PythonModules.exe collie.int.colorado.edu:SerialEM/Testing-3.9-64
+scp PythonModules.exe bio3d.colorado.edu:SerialEM/Testing-3.9-64
 if [ $? -ne 0 ] ; then echo "Error copying to Testing-3.9-64" ; exit 1 ; fi
