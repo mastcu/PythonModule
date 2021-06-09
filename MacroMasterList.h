@@ -35,7 +35,7 @@
 // Real commands that can be included in a SerialeEM script start with Exit - keep that
 // as the first such one!
 //
-// New commands must be added at the end or they will break existing Python plugins, 
+// New commands must be added at the end or they will break existing Python modules, 
 // new Python-only commands need to be added to pythonOnlyCmds in ::CMacroProcessor
 //
 // The longest command name is now 25 characters but 23 is a more common limit
@@ -602,6 +602,9 @@ MAC_SAME_NAME_NOARG(ReportFEGEmissionState, 0, 4, REPORTFEGEMISSIONSTATE)
 MAC_SAME_NAME_ARG(SetFEGEmissionState, 1, 4, SETFEGEMISSIONSTATE, I)
 MAC_SAME_NAME_ARG(SetImageBeamTilt, 2, 0, SETIMAGEBEAMTILT, DD)
 MAC_SAME_NAME_NOARG(ReportImageBeamTilt, 0, 0, REPORTIMAGEBEAMTILT)
+MAC_SAME_NAME_NOARG(ListCalibrations, 0, 4, LISTCALIBRATIONS)
+MAC_SAME_NAME_NOARG(ReportCurrentBuffer, 0, 0, REPORTCURRENTBUFFER)
+MAC_SAME_FUNC_ARG(ChangeItemDraw, 1, 4, ChangeItemRegistration, CHANGEITEMDRAW, Ii)
 
 // new Python-only commands need to be added to pythonOnlyCmds in ::CMacroProcessor
 //
