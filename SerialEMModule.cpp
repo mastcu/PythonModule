@@ -16,6 +16,7 @@
 #define EXTRA_NO_VALUE -1.e8f
 #define EXTRA_VALUE_TEST -9.e7f
 #define SCRIPT_NORMAL_EXIT  -123456
+#define SCRIPT_USER_STOP    -234561
 #define SCRIPT_EXIT_NO_EXC  -654321
 #define BUFFER_PROCESSED -1
 
@@ -139,7 +140,10 @@ static int PyBufferImage_init(PyBufferImage *bufIm, PyObject *args, PyObject *kw
         (bufInd, len - 1, strPtr, bufIm->imType, bufIm->rowBytes, bufIm->sizeX,
          bufIm->sizeY, bufIm->itemSize, &bufIm->format[0]);
       if (!bufIm->array) {
-        PyErr_SetString(sSEMModuleError, sSocket.mErrorBuf);
+        if (strstr(sSocket.mErrorBuf, "STOP"))
+          PyErr_SetString(sExitedError, "User STOP");
+        else
+          PyErr_SetString(sSEMModuleError, sSocket.mErrorBuf);
 
         // -1 here and below is silent, 0 gives an exception from the exception with
         // "returned a result with an error set"
@@ -254,7 +258,7 @@ static PyTypeObject PyBufferImageType = {
 // PutImageInBuffer
 PyObject *serialem_PutImageInBuffer(PyObject *self, PyObject *args)
 {
-  int toBufInd, baseBufInd, sizeX = 0, sizeY = 0, imType, xInd;
+  int toBufInd, baseBufInd, sizeX = 0, sizeY = 0, imType, xInd, err;
   char *toBufPtr, *baseBufPtr = NULL;
   int moreBinning = 1;
   int capFlag = BUFFER_PROCESSED;
@@ -342,9 +346,13 @@ PyObject *serialem_PutImageInBuffer(PyObject *self, PyObject *args)
   }
 
   // Call the function to deliver the image
-  if (sSocket.PutImageInbuffer(view.buf, imType, sizeX, sizeY, (int)view.itemsize,
-                               toBufInd, baseBufInd, moreBinning, capFlag)) {
-    PyErr_SetString(sSEMModuleError, sSocket.mErrorBuf);
+  err = sSocket.PutImageInbuffer(view.buf, imType, sizeX, sizeY, (int)view.itemsize,
+                                 toBufInd, baseBufInd, moreBinning, capFlag);
+  if (err) {
+    if (err == 2)
+      PyErr_SetString(sExitedError, "User STOP");
+    else
+      PyErr_SetString(sSEMModuleError, sSocket.mErrorBuf);
     PyBuffer_Release(&view);
     return NULL;
   }
@@ -546,7 +554,7 @@ static PyObject *RunCommand(int funcCode, const char *name, const char *keys,
   void *aP[MAX_SCRIPT_LANG_ARGS];
   int tempInts[MAX_SCRIPT_LANG_ARGS];
   std::string format;
-  int ind, ond, retval, numArgs = (int)strlen(keys);
+  int ind, ond, err, retval, numArgs = (int)strlen(keys);
   bool gotOpt = false;
 
   // Make sure things are initialized
@@ -698,8 +706,12 @@ static PyObject *RunCommand(int funcCode, const char *name, const char *keys,
   sScriptData->functionCode = funcCode;
   sScriptData->commandReady = 1;
   sExitWasCalled = funcCode == CME_EXIT;
-  if (sSocket.RegularCommand()) {
-    PyErr_SetString(sSEMModuleError, sSocket.mErrorBuf);
+  err = sSocket.RegularCommand();
+  if (err) {
+    if (err == 2)
+      PyErr_SetString(sExitedError, "User STOP");
+    else
+      PyErr_SetString(sSEMModuleError, sSocket.mErrorBuf);
     return NULL;
   }
   
@@ -709,6 +721,9 @@ static PyObject *RunCommand(int funcCode, const char *name, const char *keys,
   if (sScriptData->errorOccurred) {
     if (sScriptData->errorOccurred == SCRIPT_NORMAL_EXIT) {
       PyErr_SetString(sExitedError, "Normal exit");
+      sInitializedScript = false;
+    } else if (sScriptData->errorOccurred == SCRIPT_USER_STOP) {
+      PyErr_SetString(sExitedError, "User STOP");
       sInitializedScript = false;
     } else if (sScriptData->errorOccurred == SCRIPT_EXIT_NO_EXC) {
       Py_RETURN_NONE;

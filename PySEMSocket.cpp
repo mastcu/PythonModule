@@ -415,6 +415,11 @@ void CPySEMSocket::SendAndReceiveArgs()
              "SerialEM was disconnected and is now busy");
    return;
  }
+ if (mLongArgs[0] == -10) {
+   sprintf_s(mErrorBuf, ERR_BUF_SIZE, "PySEMSocket: Server returned -10, which means "
+             "a user STOP occurred");
+   return;
+ }
  
  if (mLongArgs[0] < 0) {
    sprintf_s(mErrorBuf, ERR_BUF_SIZE, "PySEMSocket: Server return code %d", mLongArgs[0]);
@@ -578,14 +583,14 @@ int CPySEMSocket::SendImage(void *imArray, int imSize)
   SendAndReceiveArgs();
   if (mLongArgs[0]) {
     bufCopy = mErrorBuf;
-    if (mLongArgs[0] != -9)
+    if (mLongArgs[0] != -9 && mLongArgs[0] != -10)
       sprintf_s(mErrorBuf, ERR_BUF_SIZE, "Error %d returned in socket exchange with "
                 "SerialEM to put image in buffer%s%s",  mLongArgs[0],
                  bufCopy.size() ? ": " : "", bufCopy.size() ? bufCopy.c_str() : "");
 
     if (mLongArgs[0] < 0)
       CloseServer();
-    return 1;
+    return (mLongArgs[0] == -10 ? 2 : 1);
   }
 
   // Loop on the chunks until done, getting acknowledgement after each
@@ -744,13 +749,13 @@ int CPySEMSocket::RegularCommand(void)
   free(longArr);
   if (mLongArgs[0]) {
     bufCopy = mErrorBuf;
-    if (mLongArgs[0] != -9)
+    if (mLongArgs[0] != -9 && mLongArgs[0] != -10)
       sprintf_s(mErrorBuf, ERR_BUF_SIZE, "Error %d returned in socket exchange with "
                 "SerialEM for regular command%s%s",  mLongArgs[0],
                 bufCopy.size() ? ": " : "", bufCopy.size() ? bufCopy.c_str() : "");
     if (mLongArgs[0] < 0)
       CloseServer();
-    return 1;
+    return (mLongArgs[0] == -10 ? 2 : 1);
   }
   mScriptData->highestReportInd = mLongArgs[1];
   mScriptData->errorOccurred = mLongArgs[2];
@@ -786,13 +791,13 @@ int CPySEMSocket::OKtoRunExternalScript(BOOL &OKtoRun)
   SendAndReceiveArgs();
   if (mLongArgs[0]) {
     bufCopy = mErrorBuf;
-    if (mLongArgs[0] != -9)
+    if (mLongArgs[0] != -9 && mLongArgs[0] != -10)
       sprintf_s(mErrorBuf, ERR_BUF_SIZE, "Error %d returned in socket exchange with "
                 "SerialEM to check on running external script%s%s",  mLongArgs[0],
                 bufCopy.size() ? ": " : "", bufCopy.size() ? bufCopy.c_str() : "");
     if (mLongArgs[0] < 0)
       CloseServer();
-    return 1;
+    return (mLongArgs[0] == -10 ? 2 : 1);
   }
   OKtoRun = mBoolArgs[0];
   return 0;
@@ -813,7 +818,7 @@ void *CPySEMSocket::GetBufferImage(int bufInd, int ifFFT, const char *bufStr, in
   SendAndReceiveArgs();
   if (mLongArgs[0]) {
      bufCopy = mErrorBuf;
-    if (mLongArgs[0] != -9)
+    if (mLongArgs[0] != -9 && mLongArgs[0] != -10)
       sprintf_s(mErrorBuf, ERR_BUF_SIZE, "Error %d returned in socket exchange with "
                 "SerialEM to get buffer %s%s%s",  mLongArgs[0], bufStr,
                 bufCopy.size() ? ": " : "", bufCopy.size() ? bufCopy.c_str() : "");
