@@ -30,6 +30,7 @@ static PyObject *sSEMModuleError;
 static bool sExitWasCalled;
 static bool sInitializedScript = false;
 static CPySEMSocket sSocket;
+static bool sAlwaysReturnTuple = false;
 
 
 static ScriptLangData dataStruct;
@@ -386,6 +387,16 @@ PyObject *serialem_ScriptIsInitialized(PyObject *self, PyObject *args)
   Py_RETURN_NONE;
 }
 
+// ReturnAllValuesAsTuples
+PyObject *serialem_ReturnAllValuesAsTuples(PyObject *self, PyObject *args)
+{
+  int val = 1
+  if (!PyArg_ParseTuple(args, "|i"))
+    return NULL;
+  sAlwaysReturnTuple = i != 0;
+  Py_RETURN_NONE;
+}
+
 // This is both the pattern for making a specialized set as done below,
 // and also necessary to define away the rest of entries in the master list
 #define MAC_SAME_FUNC(nam, req, flg, fnc, cme)  
@@ -441,6 +452,7 @@ static PyMethodDef serialemmethods[] = {
 #if PY_MAJOR_VERSION >= 3
   {"PutImageInBuffer", serialem_PutImageInBuffer, METH_VARARGS},
 #endif
+  {"ReturnAllValuesAsTuples", serialem_ReturnAllValuesAsTuples, METH_VARARGS},
   {NULL, NULL}};
 
 // Define the module
@@ -743,7 +755,8 @@ static PyObject *RunCommand(int funcCode, const char *name, const char *keys,
   }
   
   // Or return a single value
-  if (!sScriptData->highestReportInd) {
+  if (!sScriptData->highestReportInd && (sScriptData->repValIsString[0] ||
+                                         !sAlwaysReturnTuple)) {
     if (sScriptData->repValIsString[0]) {
       //SEMTrace('[', "returning string %s", sScriptData->reportedStrs[0].c_str());
       return Py_BuildValue("s", sScriptData->reportedStrs[0].c_str());
