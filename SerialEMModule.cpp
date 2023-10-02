@@ -390,10 +390,10 @@ PyObject *serialem_ScriptIsInitialized(PyObject *self, PyObject *args)
 // ReturnAllValuesAsTuples
 PyObject *serialem_ReturnAllValuesAsTuples(PyObject *self, PyObject *args)
 {
-  int val = 1
-  if (!PyArg_ParseTuple(args, "|i"))
+  int val = 1;
+  if (!PyArg_ParseTuple(args, "|i", &val))
     return NULL;
-  sAlwaysReturnTuple = i != 0;
+  sAlwaysReturnTuple = val != 0;
   Py_RETURN_NONE;
 }
 
