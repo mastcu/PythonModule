@@ -50,6 +50,7 @@ static ScriptLangData *sScriptData = &dataStruct;
 // An enum with indexes to true commands, preceded by special operations
 enum {
 #include "MacroMasterList.h"
+  CME_ENUM_LENGTH
 };
 
 /*
@@ -397,6 +398,13 @@ PyObject *serialem_ReturnAllValuesAsTuples(PyObject *self, PyObject *args)
   Py_RETURN_NONE;
 }
 
+PyObject *serialem_ReportNumModuleFuncs(PyObject *self, PyObject *args)
+{
+  if (!PyArg_ParseTuple(args, ""))
+    return NULL;
+  return Py_BuildValue("i", CME_ENUM_LENGTH);
+}
+
 // This is both the pattern for making a specialized set as done below,
 // and also necessary to define away the rest of entries in the master list
 #define MAC_SAME_FUNC(nam, req, flg, fnc, cme)  
@@ -453,6 +461,7 @@ static PyMethodDef serialemmethods[] = {
   {"PutImageInBuffer", serialem_PutImageInBuffer, METH_VARARGS},
 #endif
   {"ReturnAllValuesAsTuples", serialem_ReturnAllValuesAsTuples, METH_VARARGS},
+  {"ReportNumModuleFuncs", serialem_ReportNumModuleFuncs, METH_VARARGS},
   {NULL, NULL}};
 
 // Define the module
