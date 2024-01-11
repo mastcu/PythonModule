@@ -747,8 +747,8 @@ static PyObject *RunCommand(int funcCode, const char *name, const char *keys,
       PyErr_SetString(sExitedError, "User STOP");
       sInitializedScript = false;
     } else if (sScriptData->errorOccurred == SCRIPT_EXIT_NO_EXC) {
-      Py_RETURN_NONE;
       sInitializedScript = false;
+      Py_RETURN_NONE;
     } else {
       PyErr_SetString(sSerialEMError, (sScriptData->highestReportInd >= 0 &&
                                        sScriptData->repValIsString[0]) ?
