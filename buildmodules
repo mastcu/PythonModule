@@ -1,5 +1,5 @@
 #!/bin/bash
-curVer=4.1
+curVer=4.2
 
 if [ $# -gt 0 ] ; then
     if [ "$1" == "-f" ] ; then rm -r build ; fi
@@ -57,6 +57,9 @@ if [ $? -ne 0 ] ; then echo "Error building for 3.8" ; exit 1 ; fi
 if [ $? -ne 0 ] ; then echo "Error building for 3.9" ; exit 1 ; fi
 "C:/Program Files/Python311/python" setup.py build
 if [ $? -ne 0 ] ; then echo "Error building for 3.11" ; exit 1 ; fi
+"C:/Program Files/Python312/python" setup.py build
+if [ $? -ne 0 ] ; then echo "Error building for 3.12" ; exit 1 ; fi
+# Open terminal as Admin and "C:/Program Files/Pythonxxx/Scripts/pip" install setuptools
 
 cp build/lib*/*cp*pyd PythonModules
 cp build/lib.win32-2.7/serialem.pyd PythonModules/2.7

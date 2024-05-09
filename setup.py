@@ -2,9 +2,12 @@
 #
 # distutils setup.py file for building python serialem module
 #
-
-from distutils.core import setup, Extension
 import sys
+pyVersion = 1000 * sys.version_info[0] + 10 * sys.version_info[1]
+if pyVersion < 3120:
+   from distutils.core import setup, Extension
+else:
+   from setuptools import setup, Extension
 libs = []
 if sys.platform.startswith("win"):
    libs = ['wsock32']
