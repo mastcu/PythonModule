@@ -398,11 +398,22 @@ PyObject *serialem_ReturnAllValuesAsTuples(PyObject *self, PyObject *args)
   Py_RETURN_NONE;
 }
 
+// ReportNumModuleFuncs
 PyObject *serialem_ReportNumModuleFuncs(PyObject *self, PyObject *args)
 {
   if (!PyArg_ParseTuple(args, ""))
     return NULL;
   return Py_BuildValue("i", CME_ENUM_LENGTH);
+}
+
+// SetBufferImageTimeout
+PyObject *serialem_SetBufferImageTimeout(PyObject *self, PyObject *args)
+{
+  float val;
+  if (!PyArg_ParseTuple(args, "f", &val))
+    return NULL;
+  sSocket.SetBufImageTimeout(val);
+  Py_RETURN_NONE;
 }
 
 // This is both the pattern for making a specialized set as done below,
@@ -462,6 +473,7 @@ static PyMethodDef serialemmethods[] = {
 #endif
   {"ReturnAllValuesAsTuples", serialem_ReturnAllValuesAsTuples, METH_VARARGS},
   {"ReportNumModuleFuncs", serialem_ReportNumModuleFuncs, METH_VARARGS},
+  {"SetBufferImageTimeout", serialem_SetBufferImageTimeout, METH_VARARGS},
   {NULL, NULL}};
 
 // Define the module

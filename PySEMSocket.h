@@ -103,6 +103,7 @@ private:
   char *mArgsBuffer;
   int mArgBufSize;
   int mNumBytesSend;
+  float mBufImageTimeout;
 
 public:
   int InitializeSocket(int port = 0, const char *ipAddress = NULL);
@@ -139,4 +140,6 @@ public:
                        char *format);
   int PutImageInbuffer(void *imArray, int imType, int sizeX, int sizeY, int itemBytes,
                        int toBuf, int baseBuf, int moreBinning, int capFlag);
+  void SetBufImageTimeout(float seconds) {mBufImageTimeout = seconds;};
+  void SetTimeout(float seconds);
 };
