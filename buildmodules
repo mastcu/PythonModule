@@ -31,8 +31,8 @@ if [ $masterDiff -ne 0 ] ; then
     hg push
 fi
     
-rm -r build
-rm -r PythonModules
+rm -rf build
+rm -rf PythonModules
 mkdir PythonModules
 mkdir PythonModules/2.7
 mkdir PythonModules/3.4-32
