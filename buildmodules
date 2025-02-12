@@ -59,6 +59,8 @@ if [ $? -ne 0 ] ; then echo "Error building for 3.9" ; exit 1 ; fi
 if [ $? -ne 0 ] ; then echo "Error building for 3.11" ; exit 1 ; fi
 "C:/Program Files/Python312/python" setup.py build
 if [ $? -ne 0 ] ; then echo "Error building for 3.12" ; exit 1 ; fi
+"C:/Program Files/Python313/python" setup.py build
+if [ $? -ne 0 ] ; then echo "Error building for 3.13" ; exit 1 ; fi
 # Open terminal as Admin and "C:/Program Files/Pythonxxx/Scripts/pip" install setuptools
 
 cp build/lib*/*cp*pyd PythonModules
