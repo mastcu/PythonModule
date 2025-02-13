@@ -241,7 +241,7 @@ void CPySEMSocket::CloseServer()
 // Send a message in the argument buffer to the server and get a reply
 // returns 1 for an error, and the negative of the number of bytes received if
 // it is not as many as are needed for the command so that can be reponded to later
-int CPySEMSocket::ExchangeMessages()
+int CPySEMSocket::ExchangeMessages(int *numExtraBytes)
 {
   int nbytes, err, trial, numReceived, numExpected, needed;
   double startTime, timeDiff;
@@ -255,6 +255,8 @@ int CPySEMSocket::ExchangeMessages()
     sprintf_s(mErrorBuf, ERR_BUF_SIZE, "PySEMSocket: Failed to open socket");
     return 1;
   }
+  if (numExtraBytes)
+    *numExtraBytes = 0;
   for (trial = 0; trial < 2; trial++) {
 
     // Try to send the message
@@ -309,6 +311,8 @@ int CPySEMSocket::ExchangeMessages()
   // Find out how many bytes are in message and make sure we have the whole thing
   memcpy(&numExpected, &mArgsBuffer[0], sizeof(int));
   ReallocArgsBufIfNeeded(numExpected);
+  if (numReceived > numExpected && numExtraBytes)
+    *numExtraBytes = numReceived - numExpected;
   if (FinishGettingBuffer(mArgsBuffer, numReceived, numExpected, 
                           mArgBufSize)) {
     CloseServer();
@@ -402,7 +406,7 @@ void CPySEMSocket::InitializePacking(int funcCode)
 // Once arguments have been placed in the arrays, this routine packs them into a message,
 // sends the message, received the reply, unpacks it into the argument arrays, and sets
 // the return code to a negative value in various error cases
-void CPySEMSocket::SendAndReceiveArgs()
+void CPySEMSocket::SendAndReceiveArgs(int *numExtraBytes)
 {
   mErrorBuf[0] = 0x00;
 
@@ -415,7 +419,7 @@ void CPySEMSocket::SendAndReceiveArgs()
              "argument buffer");
    return;
  }
- int err = ExchangeMessages();
+ int err = ExchangeMessages(numExtraBytes);
  if (err > 0) {
    mLongArgs[0] = -8;
    return;
@@ -552,11 +556,19 @@ LONG *CPySEMSocket::AddItemArrays()
 
 // Exchanges messages for an image acquisition then, if all is good, acquires the image
 // buffer of the expected size
-int CPySEMSocket::ReceiveImage(char *imArray, int numBytes, int numChunks)
+int CPySEMSocket::ReceiveImage(char *imArray, int numBytes, int numChunks,
+                               int numExtraBytes)
 {
   int nsent, chunkSize, numToGet, chunk, err, totalRecv = 0;
 
   memset(imArray, 0, numBytes);  // ?
+
+  // Copy extra bytes from end of message exchange
+  if (numExtraBytes > 0) {
+    numToGet = B3DMIN(numBytes, numExtraBytes);
+    memcpy(imArray, mArgsBuffer + mArgBufSize - numToGet, numToGet);
+    totalRecv = numToGet;
+  }
   chunkSize = (numBytes + numChunks - 1) / numChunks;
   for (chunk = 0; chunk < numChunks; chunk++) {
     if (chunk) {
@@ -830,13 +842,13 @@ void *CPySEMSocket::GetBufferImage(int bufInd, int ifFFT, const char *bufStr, in
                                    char *format)
 {
   char *imArray;
-  int numBytes, numChunks;
+  int numBytes, numChunks, numExtraBytes;
   std::string bufCopy;
    InitializePacking(PSS_GetBufferImage);
   LONG_ARG(bufInd);
   LONG_ARG(ifFFT);
   mNumLongRecv = 6;
-  SendAndReceiveArgs();
+  SendAndReceiveArgs(&numExtraBytes);
   if (mLongArgs[0]) {
      bufCopy = mErrorBuf;
     if (mLongArgs[0] != -9 && mLongArgs[0] != -10)
@@ -895,7 +907,7 @@ void *CPySEMSocket::GetBufferImage(int bufInd, int ifFFT, const char *bufStr, in
     return NULL;
   }
 
-  if (ReceiveImage(imArray, numBytes, numChunks)) {
+  if (ReceiveImage(imArray, numBytes, numChunks, numExtraBytes)) {
     free(imArray);
     return NULL;
   }    

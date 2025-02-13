@@ -107,20 +107,20 @@ private:
 
 public:
   int InitializeSocket(int port = 0, const char *ipAddress = NULL);
-  int ExchangeMessages();
+  int ExchangeMessages(int *numExtraBytes);
   int OpenServerSocket();
   void CloseServer();
   int ReallocArgsBufIfNeeded(int needSize);
 
   void InitializePacking(int funcCode);
-  void SendAndReceiveArgs();
+  void SendAndReceiveArgs(int *numExtraBytes = NULL);
   int SendOneArgReturnRetVal(int funcCode, int argument);
   const char *GetOneString(int funcCode);
   void AddStringAsLongArray(const char *name, LONG *longArr, int maxLen);
   LONG *AddLongsAndStrings(LONG *longVals, int numLongs, 
                                   const char **strings, int numStrings);
   LONG *AddItemArrays();
-  int ReceiveImage(char *imArray, int numBytes, int numChunks);
+  int ReceiveImage(char *imArray, int numBytes, int numChunks, int NumExtraBytes);
   int SendImage(void *imArray, int imSize);
   int SendBuffer(char *buffer, int numBytes);
   void ReportErrorAndClose(int retval, const char *message);
