@@ -1,8 +1,14 @@
 #!/bin/bash
 curVer=4.2
 
+# ADJUST THIS WHEN CHANGE THE BUILD
+numModules=11
+
 if [ $# -gt 0 ] ; then
     if [ "$1" == "-f" ] ; then rm -r build ; fi
+else
+    files=`ls PythonModules/*.pyd PythonModules/*/*.pyd | wc -w`
+    if [[ $files -ne $numModules ]] ; then rm -r build ; fi
 fi
 
 pushd ../SerialEM
@@ -37,9 +43,6 @@ mkdir PythonModules
 mkdir PythonModules/2.7
 mkdir PythonModules/3.4-32
 mkdir PythonModules/3.4-64
-
-# ADJUST THIS WHEN CHANGE THE BUILD
-numModules=11
 
 "C:/Program Files (x86)/Python27/python" setup.py build
 if [ $? -ne 0 ] ; then echo "Error building for 2.7" ; exit 1 ; fi
