@@ -38,6 +38,8 @@ mkdir PythonModules/2.7
 mkdir PythonModules/3.4-32
 mkdir PythonModules/3.4-64
 
+# ADJUST THIS WHEN CHANGE THE BUILD
+numModules=11
 
 "C:/Program Files (x86)/Python27/python" setup.py build
 if [ $? -ne 0 ] ; then echo "Error building for 2.7" ; exit 1 ; fi
@@ -70,6 +72,8 @@ cp build/lib.win-amd64-3.4/serialem.pyd PythonModules/3.4-64
 
 cp "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/redist/x64/Microsoft.VC140.CRT/msvcp140.dll" PythonModules
 chmod u+w PythonModules/msvcp140.dll
+files=`ls PythonModules/*.pyd PythonModules/*/*.pyd | wc -w`
+if [[ $files -ne $numModules ]] ; then echo "Not all the modules were built" ; exit 1 ; fi
 
 if [ -n "$SIGNWRAPPER" ] ; then
     files=`ls PythonModules/*.pyd PythonModules/*/*.pyd PythonModules/*.dll`
