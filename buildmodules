@@ -1,8 +1,9 @@
 #!/bin/bash
-curVer=4.2
+curVer=4.3
 
 # ADJUST THIS WHEN CHANGE THE BUILD
 numModules=11
+distDir="../Distribution/Microsoft.VC140/64bit"
 
 if [ $# -gt 0 ] ; then
     if [ "$1" == "-f" ] ; then rm -r build ; fi
@@ -73,7 +74,11 @@ cp build/lib.win32-2.7/serialem.pyd PythonModules/2.7
 cp build/lib.win32-3.4/serialem.pyd PythonModules/3.4-32
 cp build/lib.win-amd64-3.4/serialem.pyd PythonModules/3.4-64
 
-cp "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/redist/x64/Microsoft.VC140.CRT/msvcp140.dll" PythonModules
+if [ -e "$distDir" ] ; then
+    cp -p $distDir/msvcp140.dll PythonModules
+else
+    cp -p "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/redist/x64/Microsoft.VC140.CRT/msvcp140.dll" PythonModules
+fi
 chmod u+w PythonModules/msvcp140.dll
 files=`ls PythonModules/*.pyd PythonModules/*/*.pyd | wc -w`
 if [[ $files -ne $numModules ]] ; then echo "Not all the modules were built" ; exit 1 ; fi
